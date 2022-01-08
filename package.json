@@ -5,7 +5,8 @@
   },
   "dependencies": {
     "@prisma/client": "^3.7.0",
-    "fastify": "^3.25.3"
+    "fastify": "^3.25.3",
+    "fastify-cors": "^6.0.2"
   },
   "devDependencies": {
     "@types/node": "^16.11.19",
