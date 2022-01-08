@@ -15,6 +15,9 @@ spec:
       containers:
         - image: okteto.dev/sample-app-backend:latest
           name: sample-app-backend
+          env:
+            - name: DATABASE_URL
+              value: $DATABASE_URL
 
 ---
 apiVersion: v1
