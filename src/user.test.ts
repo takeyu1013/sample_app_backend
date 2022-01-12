@@ -1,9 +1,17 @@
-import { app } from "./index";
+import { PrismaClient } from "@prisma/client";
 
 test("should be vaild", async () => {
-  const response = await app.inject({
-    method: "GET",
-    url: "/users",
+  const prisma = new PrismaClient();
+  const user = {
+    name: "Rich",
+    email: "hello@prisma.io",
+  };
+  const response = await prisma.user.create({ data: user });
+  await prisma.user.delete({
+    where: {
+      id: response.id,
+    },
   });
-  expect(response.statusCode).toBe(200);
+
+  await expect(response).resolves.toBeTruthy;
 });
