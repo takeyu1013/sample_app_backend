@@ -4,35 +4,48 @@ import fastifySensible from "fastify-sensible";
 import cors from "fastify-cors";
 import { Static, Type } from "@sinclair/typebox";
 
+export const app = fastify().register(cors).register(fastifySensible);
 const prisma = new PrismaClient();
-export const app = fastify().register(cors);
-app.register(fastifySensible);
-
-app.get("/users", async (_, res) => {
-  const users = await prisma.user.findMany();
-  res.send(users);
-});
 
 app.get("/", async (_, res) => {
   res.send("Hello World");
 });
 
-const User = Type.Object({
-  name: Type.String({ maxLength: 50 }),
-  email: Type.String({ format: "email", maxLength: 255 }),
+const responseSchema = Type.Object({
+  id: Type.Number(),
+  name: Type.String(),
+  email: Type.String(),
 });
-export type Body = Static<typeof User>;
+type Response = Static<typeof responseSchema>;
 
-app.post<{
-  Body: Body;
-  Reply: Body;
-}>(
+app.get<{ Reply: Response[] }>(
   "/users",
   {
     schema: {
-      body: User,
       response: {
-        201: User,
+        200: Type.Array(responseSchema),
+      },
+    },
+  },
+  async (_, res) => {
+    const users = await prisma.user.findMany();
+    res.send(users);
+  }
+);
+
+const bodySchema = Type.Object({
+  name: Type.String({ maxLength: 50 }),
+  email: Type.String({ format: "email", maxLength: 255 }),
+});
+type Body = Static<typeof bodySchema>;
+
+app.post<{ Body: Body; Reply: Response }>(
+  "/users",
+  {
+    schema: {
+      body: bodySchema,
+      response: {
+        201: responseSchema,
       },
     },
   },
@@ -52,7 +65,7 @@ app.post<{
         email: lowerEmail,
       },
     });
-    console.log(result);
+    res.log.info(result);
     res.status(201).send(result);
   }
 );
