@@ -3,8 +3,13 @@ import fastify from "fastify";
 import fastifySensible from "fastify-sensible";
 import cors from "fastify-cors";
 import { Static, Type } from "@sinclair/typebox";
+import { fastifyBcrypt } from "fastify-bcrypt";
+import { Body, bodySchema, createUser } from "./user";
 
-export const app = fastify().register(cors).register(fastifySensible);
+export const app = fastify()
+  .register(cors)
+  .register(fastifySensible)
+  .register(fastifyBcrypt);
 const prisma = new PrismaClient();
 
 app.get("/", async (_, res) => {
@@ -33,12 +38,6 @@ app.get<{ Reply: Response[] }>(
   }
 );
 
-const bodySchema = Type.Object({
-  name: Type.String({ maxLength: 50 }),
-  email: Type.String({ format: "email", maxLength: 255 }),
-});
-type Body = Static<typeof bodySchema>;
-
 app.post<{ Body: Body; Reply: Response }>(
   "/users",
   {
@@ -50,19 +49,12 @@ app.post<{ Body: Body; Reply: Response }>(
     },
   },
   async (req, res) => {
-    const { name, email } = req.body;
-    if (!name.trim()) {
-      throw app.httpErrors.badRequest("The name is empty");
-    }
-    const lowerEmail = email.toLowerCase();
-    const user = await prisma.user.findUnique({ where: { email: lowerEmail } });
-    if (user) {
-      throw app.httpErrors.conflict(`${lowerEmail} is already exists`);
-    }
+    const user = await createUser(req.body);
     const result = await prisma.user.create({
       data: {
-        name,
-        email: lowerEmail,
+        name: user.name,
+        email: user.email,
+        passwordDigest: await app.bcrypt.hash(user.password),
       },
     });
     res.log.info(result);
