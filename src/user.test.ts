@@ -50,4 +50,18 @@ describe("user tests", () => {
     });
     expect(() => createUser(user)).rejects.toThrowError();
   });
+
+  test("password should be present (nonblank)", async () => {
+    const password = " ".repeat(6);
+    expect(() =>
+      createUser({ ...user, password, passwordConfirmation: password })
+    ).rejects.toThrowError();
+  });
+
+  test("password should have a minimum length", async () => {
+    const password = "a".repeat(5);
+    expect(() =>
+      createUser({ ...user, password, passwordConfirmation: password })
+    ).rejects.toThrowError();
+  });
 });

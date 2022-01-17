@@ -6,8 +6,8 @@ import Ajv from "ajv/dist/2019";
 export const bodySchema = Type.Object({
   name: Type.String({ maxLength: 50 }),
   email: Type.String({ format: "email", maxLength: 255 }),
-  password: Type.String(),
-  passwordConfirmation: Type.String(),
+  password: Type.String({ minLength: 6 }),
+  passwordConfirmation: Type.String({ minLength: 6 }),
 });
 export type Body = Static<typeof bodySchema>;
 
@@ -19,6 +19,9 @@ export const createUser = async (user: Body): Promise<Body> => {
   }
   if (!user.name.trim()) {
     throw new Error("The name is empty");
+  }
+  if (!user.password.trim()) {
+    throw new Error("The password is empty");
   }
   const ajv = addFormats(new Ajv({}), [
     "date-time",
