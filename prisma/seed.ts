@@ -6,14 +6,17 @@ const userData: Prisma.UserCreateInput[] = [
   {
     name: "Alice",
     email: "alice@prisma.io",
+    passwordDigest: "password",
   },
   {
     name: "Nilu",
     email: "nilu@prisma.io",
+    passwordDigest: "foo",
   },
   {
     name: "Mahmoud",
     email: "mahmoud@prisma.io",
+    passwordDigest: "bar",
   },
 ];
 
