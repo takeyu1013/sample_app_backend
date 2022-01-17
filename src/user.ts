@@ -12,11 +12,6 @@ export const bodySchema = Type.Object({
 export type Body = Static<typeof bodySchema>;
 
 export const createUser = async (user: Body): Promise<Body> => {
-  const prisma = new PrismaClient();
-  const result = await prisma.user.findUnique({ where: { email: user.email } });
-  if (result) {
-    throw new Error("The email is already exist");
-  }
   if (!user.name.trim()) {
     throw new Error("The name is empty");
   }
@@ -41,9 +36,14 @@ export const createUser = async (user: Body): Promise<Body> => {
   ])
     .addKeyword("kind")
     .addKeyword("modifier");
-  const validate = ajv.validate(bodySchema, user);
-  if (!validate) {
-    throw new Error("The user is invalid");
+  const validate = ajv.compile(bodySchema);
+  if (!validate(user) && validate.errors) {
+    throw new Error(`${validate.errors}`);
+  }
+  const prisma = new PrismaClient();
+  const result = await prisma.user.findUnique({ where: { email: user.email } });
+  if (result) {
+    throw new Error("The email is already exist");
   }
   return user;
 };
