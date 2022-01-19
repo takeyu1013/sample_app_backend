@@ -5,11 +5,15 @@ import cors from "fastify-cors";
 import { Static, Type } from "@sinclair/typebox";
 import { fastifyBcrypt } from "fastify-bcrypt";
 import { Body, bodySchema, createUser } from "./user";
+import { fastifyJwt } from "fastify-jwt";
 
 export const app = fastify()
   .register(cors)
   .register(fastifySensible)
-  .register(fastifyBcrypt);
+  .register(fastifyBcrypt)
+  .register(fastifyJwt, {
+    secret: "secret",
+  });
 const prisma = new PrismaClient();
 
 app.get("/", async (_, res) => {
@@ -61,6 +65,32 @@ app.post<{ Body: Body; Reply: Response }>(
     res.status(201).send(result);
   }
 );
+
+const authSchema = Type.Object({
+  email: Type.String(),
+  password: Type.String(),
+});
+
+type Auth = Static<typeof authSchema>;
+
+app.post<{ Body: Auth }>("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  let user = await prisma.user.findUnique({ where: { email } });
+
+  if (!user) {
+    return res.status(401).send({ error: "Invalid email or password" });
+  }
+
+  if (!(await app.bcrypt.compare(password, user.passwordDigest))) {
+    return res.status(401).send({ error: "Invalid email or password" });
+  }
+
+  let { passwordDigest: pass, ...data } = user;
+  return res.send({
+    data: { user: data, accessToken: app.jwt.sign(data) },
+  });
+});
 
 const port = process.env.PORT || 3001;
 app.listen(port, "0.0.0.0", (err) => {
