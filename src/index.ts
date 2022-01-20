@@ -16,81 +16,109 @@ export const app = fastify()
   });
 const prisma = new PrismaClient();
 
-app.get("/", async (_, res) => {
-  res.send("Hello World");
-});
+app.get(
+  "/",
+  {
+    schema: {
+      response: {
+        200: Type.String(),
+      },
+    },
+  },
+  async (_, relpy) => {
+    relpy.send("Hello World");
+  }
+);
 
-const responseSchema = Type.Object({
+const userReplySchema = Type.Object({
   id: Type.Number(),
   name: Type.String(),
   email: Type.String(),
 });
-type Response = Static<typeof responseSchema>;
+type userReply = Static<typeof userReplySchema>;
 
-app.get<{ Reply: Response[] }>(
+app.get<{ Reply: userReply[] }>(
   "/users",
   {
     schema: {
       response: {
-        200: Type.Array(responseSchema),
+        200: Type.Array(userReplySchema),
       },
     },
   },
-  async (_, res) => {
+  async (_, reply) => {
     const users = await prisma.user.findMany();
-    res.send(users);
+    reply.send(users);
   }
 );
 
-app.post<{ Body: Body; Reply: Response }>(
+app.post<{ Body: Body; Reply: userReply }>(
   "/users",
   {
     schema: {
       body: bodySchema,
       response: {
-        201: responseSchema,
+        201: userReplySchema,
       },
     },
   },
-  async (req, res) => {
-    const user = await createUser(req.body);
-    const result = await prisma.user.create({
-      data: {
-        name: user.name,
-        email: user.email,
-        passwordDigest: await app.bcrypt.hash(user.password),
-      },
-    });
-    res.log.info(result);
-    res.status(201).send(result);
+  async (request, reply) => {
+    try {
+      const user = await createUser(request.body);
+      const result = await prisma.user.create({
+        data: {
+          name: user.name,
+          email: user.email,
+          passwordDigest: await app.bcrypt.hash(user.password),
+        },
+      });
+      reply.status(201).send(result);
+    } catch (error: unknown) {
+      reply.badRequest();
+    }
   }
 );
 
-const authSchema = Type.Object({
+const loginBodySchema = Type.Object({
   email: Type.String(),
   password: Type.String(),
 });
 
-type Auth = Static<typeof authSchema>;
+type LoginBody = Static<typeof loginBodySchema>;
 
-app.post<{ Body: Auth }>("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  let user = await prisma.user.findUnique({ where: { email } });
-
-  if (!user) {
-    return res.status(401).send({ error: "Invalid email or password" });
-  }
-
-  if (!(await app.bcrypt.compare(password, user.passwordDigest))) {
-    return res.status(401).send({ error: "Invalid email or password" });
-  }
-
-  let { passwordDigest: pass, ...data } = user;
-  return res.send({
-    data: { user: data, accessToken: app.jwt.sign(data) },
-  });
+const loginReplySchema = Type.Object({
+  name: Type.String(),
+  email: Type.String(),
+  token: Type.String(),
 });
+
+type LoginReply = Static<typeof loginReplySchema>;
+
+app.post<{ Body: LoginBody; Reply: LoginReply }>(
+  "/login",
+  {
+    schema: {
+      body: loginBodySchema,
+      response: {
+        201: loginReplySchema,
+      },
+    },
+  },
+  async (request, reply) => {
+    const { email, password } = request.body;
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user || !(await app.bcrypt.compare(password, user.passwordDigest))) {
+      return reply.unauthorized();
+    }
+    const { passwordDigest: digest, ...data } = user;
+    const token = app.jwt.sign(data);
+    return reply.status(200).send({
+      name: user.name,
+      email,
+      token,
+    });
+  }
+);
 
 const port = process.env.PORT || 3001;
 app.listen(port, "0.0.0.0", (err) => {
