@@ -120,8 +120,38 @@ app.post<{ Body: LoginBody; Reply: LoginReply }>(
   }
 );
 
+const userParamsSchema = Type.Object({
+  id: Type.Number(),
+});
+
+type userParams = Static<typeof userParamsSchema>;
+
+app.get<{ Params: userParams; Reply: userReply }>(
+  "/users/:id",
+  {
+    schema: {
+      params: userParamsSchema,
+      response: {
+        200: userReplySchema,
+      },
+    },
+  },
+  async (request, reply) => {
+    const { id } = request.params;
+    const user = await prisma.user.findUnique({
+      where: { id: Number(id) },
+    });
+    if (user) {
+      reply.send(user);
+    } else {
+      reply.notFound();
+    }
+  }
+);
+
 const port = process.env.PORT || 3001;
-app.listen(port, "0.0.0.0", (err) => {
+const address = process.env.ADDRESS || "0.0.0.0";
+app.listen(port, address, (err) => {
   if (err) {
     console.error(err);
     process.exit(1);
