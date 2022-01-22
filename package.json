@@ -4,7 +4,8 @@
     "build": "tsc -p tsconfig.json",
     "start": "node index.js",
     "dev": "ts-node src/index.ts",
-    "test": "jest"
+    "test": "jest",
+    "migrate": "prisma migrate dev"
   },
   "dependencies": {
     "@prisma/client": "^3.7.0",
