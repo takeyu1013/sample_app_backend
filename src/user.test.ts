@@ -4,9 +4,6 @@ import { createUser } from "./user";
 
 describe("user tests", () => {
   const prisma = new PrismaClient();
-  beforeAll(async () => {
-    await prisma.user.deleteMany();
-  });
   const user: Body = {
     name: "Example User",
     email: "user@example.com",
@@ -15,7 +12,7 @@ describe("user tests", () => {
   };
 
   test("should be vaild", async () => {
-    expect(await createUser(user)).toBeTruthy();
+    expect(await createUser(user)).toEqual(user);
   });
 
   test("name should be present", async () => {
@@ -41,14 +38,15 @@ describe("user tests", () => {
   });
 
   test("email addresses should be unique", async () => {
-    await prisma.user.create({
+    const result = await prisma.user.create({
       data: {
         name: user.name,
         email: user.email,
         passwordDigest: user.password,
       },
     });
-    expect(() => createUser(user)).rejects.toThrowError();
+    await expect(() => createUser(user)).rejects.toThrowError();
+    await prisma.user.delete({ where: { email: result.email } });
   });
 
   test("password should be present (nonblank)", async () => {
