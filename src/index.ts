@@ -6,6 +6,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { fastifyBcrypt } from "fastify-bcrypt";
 import { Body, bodySchema, createUser } from "./user";
 import { fastifyJwt } from "fastify-jwt";
+import { fastifyCookie } from "fastify-cookie";
 
 export const app = fastify()
   .register(cors)
@@ -13,7 +14,17 @@ export const app = fastify()
   .register(fastifyBcrypt)
   .register(fastifyJwt, {
     secret: "secret",
-  });
+  })
+  .register(fastifyCookie);
+
+app.decorate("authenticate", async (request: any, reply: any) => {
+  try {
+    await request.jwtVerify();
+  } catch (error: unknown) {
+    reply.send(error);
+  }
+});
+
 const prisma = new PrismaClient();
 
 app.get(
@@ -112,6 +123,12 @@ app.post<{ Body: LoginBody; Reply: LoginReply }>(
     }
     const { passwordDigest: digest, ...data } = user;
     const token = app.jwt.sign(data);
+    reply.setCookie("token", token, {
+      path: "/",
+      secure: true,
+      httpOnly: true,
+      sameSite: true,
+    });
     return reply.status(200).send({
       name: user.name,
       email,
