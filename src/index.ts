@@ -5,7 +5,6 @@ import cors from "fastify-cors";
 import { Static, Type } from "@sinclair/typebox";
 import { Body, bodySchema, createUser } from "./user";
 import { fastifyJwt } from "fastify-jwt";
-import { fastifyCookie } from "fastify-cookie";
 import { hashSync, compareSync } from "bcrypt";
 
 export const app = fastify()
@@ -13,12 +12,7 @@ export const app = fastify()
   .register(fastifySensible)
   .register(fastifyJwt, {
     secret: "secret",
-    cookie: {
-      cookieName: "token",
-      signed: false,
-    },
-  })
-  .register(fastifyCookie);
+  });
 const prisma = new PrismaClient();
 
 app.get(
@@ -31,7 +25,7 @@ app.get(
     },
   },
   async (_, relpy) => {
-    relpy.send("Hello World");
+    return relpy.send("Hello World");
   }
 );
 
@@ -53,7 +47,7 @@ app.get<{ Reply: userReply[] }>(
   },
   async (_, reply) => {
     const users = await prisma.user.findMany();
-    reply.send(users);
+    return reply.send(users);
   }
 );
 
@@ -77,9 +71,9 @@ app.post<{ Body: Body; Reply: userReply }>(
           passwordDigest: hashSync(user.password, 10),
         },
       });
-      reply.status(201).send(result);
+      return reply.status(201).send(result);
     } catch (error: unknown) {
-      reply.badRequest();
+      return reply.badRequest();
     }
   }
 );
@@ -92,8 +86,7 @@ const loginBodySchema = Type.Object({
 type LoginBody = Static<typeof loginBodySchema>;
 
 const loginReplySchema = Type.Object({
-  name: Type.String(),
-  email: Type.String(),
+  id: Type.Number(),
   token: Type.String(),
 });
 
@@ -115,21 +108,9 @@ app.post<{ Body: LoginBody; Reply: LoginReply }>(
     if (!user || !compareSync(password, user.passwordDigest)) {
       return reply.unauthorized();
     }
-    const { passwordDigest: digest, ...data } = user;
+    const { id, passwordDigest: digest, ...data } = user;
     const token = app.jwt.sign(data);
-    return reply
-      .setCookie("token", token, {
-        path: "/",
-        secure: true,
-        httpOnly: true,
-        sameSite: true,
-      })
-      .status(200)
-      .send({
-        name: user.name,
-        email,
-        token,
-      });
+    return reply.status(200).send({ id, token });
   }
 );
 
@@ -150,17 +131,18 @@ app.get<{ Params: userParams; Reply: userReply }>(
     },
   },
   async (request, reply) => {
-    const result = await request.jwtVerify();
-    console.log(result);
+    const verifeid = await request.jwtVerify();
+    if (!verifeid) {
+      return reply.unauthorized();
+    }
     const { id } = request.params;
     const user = await prisma.user.findUnique({
-      where: { id: Number(id) },
+      where: { id },
     });
     if (user) {
-      reply.send(user);
-    } else {
-      reply.notFound();
+      return reply.send(user);
     }
+    return reply.notFound();
   }
 );
 
