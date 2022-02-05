@@ -1,4 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { hashSync } from "bcrypt";
+import { createUser } from "../src/user";
 
 const prisma = new PrismaClient();
 
@@ -11,22 +13,32 @@ const userData: Prisma.UserCreateInput[] = [
   {
     name: "Nilu",
     email: "nilu@prisma.io",
-    passwordDigest: "foo",
+    passwordDigest: "foobar",
   },
   {
     name: "Mahmoud",
     email: "mahmoud@prisma.io",
-    passwordDigest: "bar",
+    passwordDigest: "foobar",
   },
 ];
 
 async function main() {
   console.log(`Start seeding ...`);
   for (const u of userData) {
-    const user = await prisma.user.create({
-      data: u,
+    const user = await createUser({
+      name: u.name,
+      email: u.email,
+      password: u.passwordDigest,
+      passwordConfirmation: u.passwordDigest,
     });
-    console.log(`Created user with id: ${user.id}`);
+    const result = await prisma.user.create({
+      data: {
+        name: user.name,
+        email: user.email,
+        passwordDigest: hashSync(user.password, 10),
+      },
+    });
+    console.log(result);
   }
   console.log(`Seeding finished.`);
 }
