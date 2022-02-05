@@ -3,15 +3,14 @@ import fastify from "fastify";
 import fastifySensible from "fastify-sensible";
 import cors from "fastify-cors";
 import { Static, Type } from "@sinclair/typebox";
-import { fastifyBcrypt } from "fastify-bcrypt";
 import { Body, bodySchema, createUser } from "./user";
 import { fastifyJwt } from "fastify-jwt";
 import { fastifyCookie } from "fastify-cookie";
+import { hashSync, compareSync } from "bcrypt";
 
 export const app = fastify()
   .register(cors)
   .register(fastifySensible)
-  .register(fastifyBcrypt)
   .register(fastifyJwt, {
     secret: "secret",
     cookie: {
@@ -75,7 +74,7 @@ app.post<{ Body: Body; Reply: userReply }>(
         data: {
           name: user.name,
           email: user.email,
-          passwordDigest: await app.bcrypt.hash(user.password),
+          passwordDigest: hashSync(user.password, 10),
         },
       });
       reply.status(201).send(result);
@@ -113,7 +112,7 @@ app.post<{ Body: LoginBody; Reply: LoginReply }>(
   async (request, reply) => {
     const { email, password } = request.body;
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user || !(await app.bcrypt.compare(password, user.passwordDigest))) {
+    if (!user || !compareSync(password, user.passwordDigest)) {
       return reply.unauthorized();
     }
     const { passwordDigest: digest, ...data } = user;
@@ -151,6 +150,8 @@ app.get<{ Params: userParams; Reply: userReply }>(
     },
   },
   async (request, reply) => {
+    const result = await request.jwtVerify();
+    console.log(result);
     const { id } = request.params;
     const user = await prisma.user.findUnique({
       where: { id: Number(id) },
