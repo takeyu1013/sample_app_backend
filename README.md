@@ -1,4 +1,4 @@
-# Setup the database
+# Setup a database
 
 ## With a single container
 
@@ -18,10 +18,10 @@
 
 `yarn`
 
-# Migrate the database
+# Migrate a database
 
 `yarn migrate`
 
-# Reset the database
+# Reset a database
 
 `yarn reset`
