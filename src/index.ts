@@ -87,6 +87,7 @@ type LoginBody = Static<typeof loginBodySchema>;
 
 const loginReplySchema = Type.Object({
   id: Type.Number(),
+  name: Type.String(),
   token: Type.String(),
 });
 
@@ -108,9 +109,9 @@ app.post<{ Body: LoginBody; Reply: LoginReply }>(
     if (!user || !compareSync(password, user.passwordDigest)) {
       return reply.unauthorized();
     }
-    const { id, passwordDigest: digest, ...data } = user;
+    const { id, name, passwordDigest: digest, ...data } = user;
     const token = app.jwt.sign(data);
-    return reply.status(200).send({ id, token });
+    return reply.status(200).send({ id, name, token });
   }
 );
 
