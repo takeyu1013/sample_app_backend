@@ -6,6 +6,7 @@ import { Static, Type } from "@sinclair/typebox";
 import { Body, bodySchema, createUser } from "./user";
 import { fastifyJwt } from "fastify-jwt";
 import { hashSync, compareSync } from "bcrypt";
+import { randomString } from "./randomString";
 
 export const app = fastify()
   .register(cors)
@@ -69,6 +70,7 @@ app.post<{ Body: Body; Reply: userReply }>(
           name: user.name,
           email: user.email,
           passwordDigest: hashSync(user.password, 10),
+          rememberDigest: randomString(),
         },
       });
       return reply.status(201).send(result);

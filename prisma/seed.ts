@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { hashSync } from "bcrypt";
-import { createUser } from "../src/user";
+import { randomString } from "../src/randomString";
 
 const prisma = new PrismaClient();
 
@@ -9,41 +9,36 @@ const userData: Prisma.UserCreateInput[] = [
     name: "Example User",
     email: "example@railstutorial.org",
     passwordDigest: "foobar",
-    rememberDigest: "",
+    rememberDigest: randomString(),
   },
   {
     name: "Nilu",
     email: "nilu@prisma.io",
     passwordDigest: "foobar",
-    rememberDigest: "",
+    rememberDigest: randomString(),
   },
   {
     name: "Mahmoud",
     email: "mahmoud@prisma.io",
     passwordDigest: "foobar",
-    rememberDigest: "",
+    rememberDigest: randomString(),
   },
 ];
 
 async function main() {
   console.log(`Start seeding ...`);
-  for (const u of userData) {
-    const user = await createUser({
-      name: u.name,
-      email: u.email,
-      password: u.passwordDigest,
-      passwordConfirmation: u.passwordDigest,
-    });
+  userData.forEach(async (user) => {
+    console.log("remember_url", user.rememberDigest);
     const result = await prisma.user.create({
       data: {
         name: user.name,
         email: user.email,
-        passwordDigest: hashSync(user.password, 10),
-        rememberDigest: u.rememberDigest,
+        passwordDigest: hashSync(user.passwordDigest, 10),
+        rememberDigest: hashSync(user.rememberDigest, 10),
       },
     });
     console.log(result);
-  }
+  });
   console.log(`Seeding finished.`);
 }
 
