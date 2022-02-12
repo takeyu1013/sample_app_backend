@@ -14,4 +14,5 @@ model User {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   passwordDigest String   @map("password_digest")
+  rememberDigest String   @map("remember_digest")
 }

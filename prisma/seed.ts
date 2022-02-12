@@ -9,16 +9,19 @@ const userData: Prisma.UserCreateInput[] = [
     name: "Example User",
     email: "example@railstutorial.org",
     passwordDigest: "foobar",
+    rememberDigest: "",
   },
   {
     name: "Nilu",
     email: "nilu@prisma.io",
     passwordDigest: "foobar",
+    rememberDigest: "",
   },
   {
     name: "Mahmoud",
     email: "mahmoud@prisma.io",
     passwordDigest: "foobar",
+    rememberDigest: "",
   },
 ];
 
@@ -36,6 +39,7 @@ async function main() {
         name: user.name,
         email: user.email,
         passwordDigest: hashSync(user.password, 10),
+        rememberDigest: u.rememberDigest,
       },
     });
     console.log(result);
