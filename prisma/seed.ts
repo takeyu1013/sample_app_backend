@@ -1,6 +1,6 @@
 import { PrismaClient, Prisma } from "@prisma/client";
 import { hashSync } from "bcrypt";
-import { randomString } from "../src/randomString";
+import { randomString } from "../src/user";
 
 const prisma = new PrismaClient();
 

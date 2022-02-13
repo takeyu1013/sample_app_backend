@@ -1,7 +1,9 @@
 import { PrismaClient } from "@prisma/client";
 import { Static, Type } from "@sinclair/typebox";
+import { randomBytes } from "crypto";
 import addFormats from "ajv-formats";
 import Ajv from "ajv/dist/2019";
+import { hashSync } from "bcrypt";
 
 export const bodySchema = Type.Object({
   name: Type.String({ maxLength: 50 }),
@@ -45,5 +47,22 @@ export const createUser = async (user: Body): Promise<Body> => {
   if (result) {
     throw new Error("The email is already exist");
   }
+  return user;
+};
+
+export const randomString = () => {
+  return randomBytes(16).toString("base64url");
+};
+
+export const remember = async (id: number) => {
+  const prisma = new PrismaClient();
+  const user = await prisma.user.update({
+    where: {
+      id,
+    },
+    data: {
+      rememberDigest: hashSync(randomString(), 10),
+    },
+  });
   return user;
 };

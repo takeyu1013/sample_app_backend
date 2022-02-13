@@ -3,10 +3,9 @@ import fastify from "fastify";
 import fastifySensible from "fastify-sensible";
 import cors from "fastify-cors";
 import { Static, Type } from "@sinclair/typebox";
-import { Body, bodySchema, createUser } from "./user";
+import { Body, bodySchema, createUser, randomString } from "./user";
 import { fastifyJwt } from "fastify-jwt";
 import { hashSync, compareSync } from "bcrypt";
-import { randomString } from "./randomString";
 
 export const app = fastify()
   .register(cors)
